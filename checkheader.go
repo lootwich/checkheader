@@ -5,16 +5,17 @@
 // contain the necessary group information in their headers.
 //
 // The plugin configuration requires the name of the header that contains the group
-// information and a list of required groups. The header value is expected to be a
-// comma-separated list of groups. The plugin will return an error response if the
-// header is missing or if any of the required groups are not present in the header
-// value.
+// information and a list of required groups. The header value is split by the
+// configurable GroupSeparator (default: ","). The plugin will return an error response
+// if the header is missing or if any of the required groups are not present in the
+// header value.
 //
 // Example configuration:
 //
 //	{
 //	  "groupHeaderName": "X-Group-Header",
-//	  "neededGroups": ["admin", "user"]
+//	  "neededGroups": ["admin", "user"],
+//	  "groupSeparator": ","
 //	}
 //
 // In this example, the plugin will look for the "X-Group-Header" header in incoming
@@ -34,6 +35,7 @@ import (
 type Config struct {
 	GroupHeaderName string   `json:"groupHeaderName,omitempty"`
 	NeededGroups    []string `json:"neededGroups,omitempty"`
+	GroupSeparator  string   `json:"groupSeparator,omitempty"`
 }
 
 // CreateConfig creates the default plugin configuration.
@@ -41,6 +43,7 @@ func CreateConfig() *Config {
 	return &Config{
 		GroupHeaderName: "",
 		NeededGroups:    []string{},
+		GroupSeparator:  ",",
 	}
 }
 
@@ -49,6 +52,7 @@ type CheckHeader struct {
 	next            http.Handler
 	groupHeaderName string
 	neededGroups    []string
+	groupSeparator  string
 	name            string
 	template        *template.Template
 }
@@ -62,10 +66,16 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 		return nil, fmt.Errorf("NeededGroups cannot be empty")
 	}
 
+	separator := config.GroupSeparator
+	if separator == "" {
+		separator = ","
+	}
+
 	return &CheckHeader{
 		next:            next,
 		groupHeaderName: config.GroupHeaderName,
 		neededGroups:    config.NeededGroups,
+		groupSeparator:  separator,
 		name:            name,
 		template:        template.New("demo").Delims("[[", "]]"),
 	}, nil
@@ -78,9 +88,9 @@ func (a *CheckHeader) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Split the header by comma and trim spaces
+	// Split the header by the configured separator and trim spaces
 	headerGroups := make(map[string]struct{})
-	for _, group := range strings.Split(headerValue, ",") {
+	for _, group := range strings.Split(headerValue, a.groupSeparator) {
 		trimmed := strings.TrimSpace(group)
 		if trimmed != "" {
 			headerGroups[trimmed] = struct{}{}
