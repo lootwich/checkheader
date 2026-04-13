@@ -1,12 +1,12 @@
-displayName: Demo Plugin
+displayName: Check Header
 type: middleware
-iconPath: .assets/icon.png
 
-import: github.com/traefik/plugindemo
+import: github.com/lootwich/checkheader
 
-summary: '[Demo] Add Request Header'
+summary: 'Checks if the header contains a value like a group'
 
 testData:
-  Headers:
-    X-Demo: test
-    X-URL: '{{URL}}'
+  GroupHeaderName: "X-Demo"
+  NeededGroups:
+    - "test"
+    - "example"
