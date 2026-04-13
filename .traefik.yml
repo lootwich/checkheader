@@ -10,3 +10,4 @@ testData:
   NeededGroups:
     - "test"
     - "example"
+  GroupSeparator: ","
